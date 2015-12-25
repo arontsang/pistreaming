@@ -1,11 +1,10 @@
 # Pi Video Streaming Demo
 
 This is a demonstration for low latency streaming of the Pi's camera module to
-any reasonably modern web browser, utilizing Dominic Szablewski's excellent
-[JSMPEG project](https://github.com/phoboslab/jsmpeg). Other dependencies are
-the Python [ws4py library](http://ws4py.readthedocs.org/), my [picamera
-library](http://picamera.readthedocs.org/) (specifically version 1.7 or above),
-and [FFmpeg](http://ffmpeg.org).
+any reasonably modern web browser, utilizing the excellent
+[JVideo.js project](https://github.com/videojs). Other dependencies are
+the Python [ws4py library](http://ws4py.readthedocs.org/), Dave Jone's [picamera
+library](http://picamera.readthedocs.org/) (specifically version 1.7 or above).
 
 
 ## Installation
@@ -14,12 +13,12 @@ Firstly make sure you've got a functioning Pi camera module (test it with
 `raspistill` to be certain). Then make sure you've got the following packages
 installed:
 
-    $ sudo apt-get install libav-tools git python-setuptools python-pip python-picamera
+    $ sudo apt-get install git python-setuptools python-pip python-picamera
     $ sudo pip install ws4py
 
 Next, clone this repository:
 
-    $ git clone https://github.com/waveform80/pistreaming.git
+    $ git clone https://github.com/arontsang/pistreaming.git
 
 
 ## Usage
