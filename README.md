@@ -31,11 +31,11 @@ to the console as it starts up:
     Initializing websockets server on port 8084
     Initializing HTTP server on port 8082
     Initializing camera
-    Initializing broadcast thread
-    Spawning background conversion process
+    ~~Initializing broadcast thread~~
+    ~~Spawning background conversion process~~
     Starting websockets thread
     Starting HTTP server thread
-    Starting broadcast thread
+    ~~Starting broadcast thread~~
 
 Now fire up your favourite web-browser and visit the address
 `http://pi-address:8082/` - it should fairly quickly start displaying the feed
@@ -83,12 +83,12 @@ classes, and is quite simple:
 ### Websockets server
 
 This is implemented in the `StreamingWebSocket` class and is ridiculously
-simple. In response to a new connection it will immediately send a header
+simple. ~~In response to a new connection it will immediately send a header
 consisting of the four characters "jsmp" and the width and height of the video
 stream encoded as 16-bit unsigned integers in big-endian format. This header is
 expected by the jsmpg implementation. Other than that, the websocket server
 doesn't do much. The actual broadcasting of video data is handled by the
-broadcast thread object below.
+broadcast thread object below.~~
 
 
 ### Broadcast output
@@ -103,13 +103,15 @@ class feeds the data to the background FFmpeg process.
 
 ### Broadcast thread
 
-The `BroadcastThread` class implements a background thread which continually
+~~The `BroadcastThread` class implements a background thread which continually
 reads encoded MPEG1 data from the background FFmpeg process started by the
 `BroadcastOutput` class and broadcasts it to all connected websockets. In the
 event that no websockets are currently connected the `broadcast` method simply
 discards the data. In the event that no more data is available from the FFmpeg
 process, the thread checks that the FFmpeg process hasn't finished (with
-`poll`) and terminates if it has.
+`poll`) and terminates if it has.~~
+
+We now stream the h264 stream directly to the `StreamingWebSocket`.
 
 
 ### Main
