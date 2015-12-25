@@ -22,6 +22,8 @@ from time import sleep, time
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from wsgiref.simple_server import make_server
 
+from os import curdir, sep
+
 import picamera
 from ws4py.websocket import WebSocket
 from ws4py.server.wsgirefserver import WSGIServer, WebSocketWSGIRequestHandler
@@ -31,7 +33,7 @@ from ws4py.server.wsgiutils import WebSocketWSGIApplication
 # CONFIGURATION
 WIDTH = 640
 HEIGHT = 480
-FRAMERATE = 24
+FRAMERATE = 25
 HTTP_PORT = 8082
 WS_PORT = 8084
 COLOR = u'#444'
@@ -51,15 +53,20 @@ class StreamingHttpHandler(BaseHTTPRequestHandler):
             self.send_header('Location', '/index.html')
             self.end_headers()
             return
-        elif self.path == '/jsmpg.js':
-            content_type = 'application/javascript'
-            content = self.server.jsmpg_content
         elif self.path == '/index.html':
             content_type = 'text/html; charset=utf-8'
             tpl = Template(self.server.index_template)
             content = tpl.safe_substitute(dict(
                 ADDRESS='%s:%d' % (self.request.getsockname()[0], WS_PORT),
                 WIDTH=WIDTH, HEIGHT=HEIGHT, COLOR=COLOR, BGCOLOR=BGCOLOR))
+        elif self.path.startswith('/scripts/'):
+            f = open(curdir + sep + self.path)
+            self.send_response(200)
+            self.send_header('Content-type',    'application/javascript')
+            self.end_headers()
+            self.wfile.write(f.read())
+            f.close()
+            return
         else:
             self.send_error(404, 'File not found')
             return
@@ -83,57 +90,26 @@ class StreamingHttpServer(HTTPServer):
                     ('', HTTP_PORT), StreamingHttpHandler)
         with io.open('index.html', 'r') as f:
             self.index_template = f.read()
-        with io.open('jsmpg.js', 'r') as f:
-            self.jsmpg_content = f.read()
+
 
 
 class StreamingWebSocket(WebSocket):
     def opened(self):
-        self.send(JSMPEG_HEADER.pack(JSMPEG_MAGIC, WIDTH, HEIGHT), binary=True)
+        print('Connected')
 
 
 class BroadcastOutput(object):
-    def __init__(self, camera):
+    def __init__(self, websocket_server):
         print('Spawning background conversion process')
-        self.converter = Popen([
-            'avconv',
-            '-f', 'rawvideo',
-            '-pix_fmt', 'yuv420p',
-            '-s', '%dx%d' % camera.resolution,
-            '-r', str(float(camera.framerate)),
-            '-i', '-',
-            '-f', 'mpeg1video',
-            '-b', '800k',
-            '-r', str(float(camera.framerate)),
-            '-'],
-            stdin=PIPE, stdout=PIPE, stderr=io.open(os.devnull, 'wb'),
-            shell=False, close_fds=True)
+        self.websocket_server = websocket_server
 
     def write(self, b):
-        self.converter.stdin.write(b)
+        self.websocket_server.manager.broadcast(b, binary=True)
 
     def flush(self):
         print('Waiting for background conversion process to exit')
-        self.converter.stdin.close()
-        self.converter.wait()
 
 
-class BroadcastThread(Thread):
-    def __init__(self, converter, websocket_server):
-        super(BroadcastThread, self).__init__()
-        self.converter = converter
-        self.websocket_server = websocket_server
-
-    def run(self):
-        try:
-            while True:
-                buf = self.converter.stdout.read(512)
-                if buf:
-                    self.websocket_server.manager.broadcast(buf, binary=True)
-                elif self.converter.poll() is not None:
-                    break
-        finally:
-            self.converter.stdout.close()
 
 
 def main():
@@ -154,26 +130,34 @@ def main():
         http_server = StreamingHttpServer()
         http_thread = Thread(target=http_server.serve_forever)
         print('Initializing broadcast thread')
-        output = BroadcastOutput(camera)
-        broadcast_thread = BroadcastThread(output.converter, websocket_server)
+        buffer = picamera.PiCameraCircularIO(camera, seconds=2) 
+        output = BroadcastOutput(websocket_server)
+
         print('Starting recording')
-        camera.start_recording(output, 'yuv')
+        camera.start_recording(output, 'h264', intra_period = 25)
         try:
             print('Starting websockets thread')
             websocket_thread.start()
             print('Starting HTTP server thread')
             http_thread.start()
-            print('Starting broadcast thread')
-            broadcast_thread.start()
+
             while True:
                 camera.wait_recording(1)
+                #with buffer.lock:
+                    #for frame in buffer.frames :
+                        #if frame.frame_type == picamera.PiVideoFrameType.sps_header:
+                            #buffer.seek(frame.position)
+                            #break
+
+                    #output.write(buffer.read())
+
         except KeyboardInterrupt:
             pass
         finally:
             print('Stopping recording')
             camera.stop_recording()
             print('Waiting for broadcast thread to finish')
-            broadcast_thread.join()
+
             print('Shutting down HTTP server')
             http_server.shutdown()
             print('Shutting down websockets server')
