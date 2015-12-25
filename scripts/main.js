@@ -51,27 +51,25 @@
                     
                     
                     //console.log(data)
-					
-                    if(data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1)
-                    {
-                        
-                        i++;
-                        h264.push({
-                            data : new Uint8Array([0x00, 0x00, 0x00, 0x01, 0x09]),
-                            trackId : 0,
-                            type : 'video',
-                            dts : i,
-                            pts :  i
-                        });
-                    }
-                    var packet = 
+                    var t = i++;
+					var packet = 
                     { 
                         data : data, 
                         trackId : 0, 
                         type : 'video',
-                        dts : i,
-                        pts :  i
+                        dts : t,
+                        pts :  t
                     };
+                    if(data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1)
+                    {
+                        h264.push({
+                            data : new Uint8Array([0x00, 0x00, 0x00, 0x01, 0x09]),
+                            trackId : 0,
+                            type : 'video',
+                            dts : t,
+                            pts :  t
+                        });
+                    }
                     h264.push(packet);
 				};
 				fileReader.readAsArrayBuffer(e.data);
