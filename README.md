@@ -2,7 +2,7 @@
 
 This is a demonstration for low latency streaming of the Pi's camera module to
 any reasonably modern web browser, utilizing the excellent
-[JVideo.js project](https://github.com/videojs). Other dependencies are
+[Video.js project](https://github.com/videojs). Other dependencies are
 the Python [ws4py library](http://ws4py.readthedocs.org/), Dave Jone's [picamera
 library](http://picamera.readthedocs.org/) (specifically version 1.7 or above).
 
